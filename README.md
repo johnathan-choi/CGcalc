@@ -1,1 +1,3 @@
 # CGcalc
+
+Calculates stuff

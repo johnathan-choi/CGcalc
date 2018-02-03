@@ -1,0 +1,13 @@
+{
+  "name": "cgcalc",
+  "version": "1.0.0",
+  "description": "Calculates capital gains/losses in Canadian dollars",
+  "main": "server.js",
+  "author": "Johnathan Choi",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.15.5",
+    "method-override": "^2.3.10",
+    "xlsx": "^0.11.19"
+  }
+}
