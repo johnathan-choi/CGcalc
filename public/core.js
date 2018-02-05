@@ -33,8 +33,13 @@ function getDateTime(date, mode){ //turns dates legible
 var app = angular.module('cgcalc', ['ngFileUpload']);
 
 
-app.controller('indexPage', ['$scope', 'Upload', function($scope, Upload){
+app.controller('indexPage', ['$scope', 'Upload', '$http', function($scope, Upload, $http){
     $scope.currTime = getDateTime(new Date());
+
+    $http.get('https://api.binance.com/api/v1/time') //gets binance server time; move this to server
+        .then(function(response){
+            alert(getDateTime(new Date(response.data.serverTime)));
+        });
 
     $scope.submitSS = function(doc){
         $scope.doc.upload = Upload.upload({

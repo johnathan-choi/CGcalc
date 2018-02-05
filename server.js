@@ -24,14 +24,10 @@ app.post('/api/doc', function(req, res){
     var workbook = xlsx.read(req.files.file.data);
     var worksheet = workbook.Sheets[workbook.SheetNames[0]];
     var jsonSheet = xlsx.utils.sheet_to_json(worksheet).reverse();
-
-
-    console.log(jsonSheet);
-
+    //console.log(jsonSheet);
 
     res.end();
 });
-
 
 // listen (start app with node server.js) ======================================
 app.listen(8080);
