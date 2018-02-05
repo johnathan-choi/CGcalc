@@ -30,11 +30,19 @@ function getDateTime(date, mode){ //turns dates legible
     
 }
 
-var app = angular.module('cgcalc', []);
+var app = angular.module('cgcalc', ['ngFileUpload']);
 
 
-app.controller('indexPage', function($scope, $http){
+app.controller('indexPage', ['$scope', 'Upload', function($scope, Upload){
     $scope.currTime = getDateTime(new Date());
 
-});
+    $scope.submitSS = function(doc){
+        $scope.doc.upload = Upload.upload({
+            url: "/api/doc",
+            file: $scope.doc
+        }).then(function(response){
+            $scope.result=response.data;
+        });
+    };
+}]);
 

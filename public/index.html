@@ -16,14 +16,25 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
         <script src="core.js"></script>
+        <script src="/lib/ng-file-upload.min.js"></script>
+        <script src="/lib/xlsx.min.js"></script>
+        
     </head>
     <body ng-controller="indexPage">
         <!-- Logo -->
         <div class="logo"><a href="index.html">Capital Gains Calculator</a></div>
 
         <div class="body">
-            <p>Welcome. Current time is: {{currTime}}</p>    
+            <p>Welcome. Current time is: {{currTime}}</p>
+            
+            <p class="pagetitle">Import your Binance spreadsheet</p>
+            <form class="container-fluid">
+                <input type="file" ngf-select ng-model="doc" name="doc" accept=".xlsx">
+                <input type="submit" class="btn btn-primary" ng-click="submitSS(doc)">
+            </form>
 
+            <p class="pagetitle">Result</p>
+            <div>{{result}}</div>
         </div>
         
     </body>
