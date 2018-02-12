@@ -11,6 +11,13 @@ var xlsx = require('xlsx');
 
 var fileUpload = require('express-fileupload');
 
+var request = require('request');
+var requestHeaders = {
+    headers:{
+        'X-MBX-APIKEY':'7V0zsdyUVPy4fE3iJgOsRU8hAEbdoIQ5qfn5HF5jo1PwYoGP6fU8t1dulR4RnAQZ'
+    }
+};
+
 
 app.use(express.static(__dirname + '/public'));                 // set the static files location /public/img will be /img for users
 app.use(morgan('dev'));                                         // log every request to the console
@@ -20,12 +27,53 @@ app.use(bodyParser.json({ type: 'application/vnd.api+json' })); // parse applica
 app.use(methodOverride());
 app.use(fileUpload());
 
+function getDateTime(date, mode){ //turns dates legible
+    var month = date.getMonth()+1;
+        if (month - 10 < 0){
+            month = "0" + month;
+        }
+    var day = date.getDate();
+        if (day - 10 < 0){
+            day = "0" + day;
+        }
+    var hours = date.getHours();
+        if (hours - 10 < 0){
+            hours = "0" + hours;
+        }
+    var minutes = date.getMinutes();
+        if (minutes - 10 < 0){
+            minutes = "0" + minutes;
+        }
+    if (mode == "date"){ // YYYY/MM/DD
+        return date.getFullYear() + "/" + month + "/" + day;
+    }
+    else if (mode == "time"){ // HH:MM
+        return hours + ":" + minutes;
+    }
+    else{ // YYYY/MM/DD HH:MM
+        return date.getFullYear() + "/" + month + "/" + day + " " + hours + ":" + minutes;
+    }
+    
+}
+
 app.post('/api/doc', function(req, res){
     var workbook = xlsx.read(req.files.file.data);
     var worksheet = workbook.Sheets[workbook.SheetNames[0]];
     var jsonSheet = xlsx.utils.sheet_to_json(worksheet).reverse();
-    //console.log(jsonSheet);
 
+    for (var i=0; i<jsonSheet.length; i++){
+        console.log((new Date(jsonSheet[i].Date)).getTime());
+    }
+
+    request.get('https://api.binance.com/api/v1/historicalTrades?symbol=XRPETH&limit=1', requestHeaders, function(err, res, body){
+        body = JSON.parse(body)[0];
+    });
+
+
+    res.json(jsonSheet);
+});
+
+app.get('https://api.binance.com/api/v1/time', function(req, res){
     res.end();
 });
 

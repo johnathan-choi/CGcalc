@@ -38,7 +38,8 @@ app.controller('indexPage', ['$scope', 'Upload', '$http', function($scope, Uploa
 
     $http.get('https://api.binance.com/api/v1/time') //gets binance server time; move this to server
         .then(function(response){
-            alert(getDateTime(new Date(response.data.serverTime)));
+            //alert(getDateTime(new Date(response.data.serverTime)));
+            console.log("Binance server time: " + getDateTime(new Date(response.data.serverTime)));
         });
 
     $scope.submitSS = function(doc){
