@@ -12,7 +12,7 @@ var xlsx = require('xlsx');
 var fileUpload = require('express-fileupload');
 
 var request = require('request');
-var requestHeaders = {
+var binanceHeaders = {
     headers:{
         'X-MBX-APIKEY':'7V0zsdyUVPy4fE3iJgOsRU8hAEbdoIQ5qfn5HF5jo1PwYoGP6fU8t1dulR4RnAQZ'
     }
@@ -60,15 +60,27 @@ app.post('/api/doc', function(req, res){
     var workbook = xlsx.read(req.files.file.data);
     var worksheet = workbook.Sheets[workbook.SheetNames[0]];
     var jsonSheet = xlsx.utils.sheet_to_json(worksheet).reverse();
-
+    
     for (var i=0; i<jsonSheet.length; i++){
-        console.log((new Date(jsonSheet[i].Date)).getTime());
+        var tradeDate, tradeDate2, tradeMarket, tradeType, tradeTotal, tradeFeeCoin, tradeFee, tradeQuery; //declare variables
+        tradeDate = new Date(jsonSheet[i].Date); //start date
+        tradeDate2 = new Date(tradeDate.getTime()+(60000)); //end date
+        tradeMarket = jsonSheet[i].Market; //trading pair
+
+        var gdaxHeaders = { //define header for gdax
+            headers:{
+                'User-Agent':'cgcalc'
+            }
+        };        
+        setTimeout(waitTimeOut, 5000); //timeout
+
+        function waitTimeOut(){ //get request
+            request.get('https://api.gdax.com/products/ETH-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders, function(err, res, body){
+                console.log("Closing price: ");
+                console.log(body);
+            });
+        }
     }
-
-    request.get('https://api.binance.com/api/v1/historicalTrades?symbol=XRPETH&limit=1', requestHeaders, function(err, res, body){
-        body = JSON.parse(body)[0];
-    });
-
 
     res.json(jsonSheet);
 });
