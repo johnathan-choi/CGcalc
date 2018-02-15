@@ -12,11 +12,11 @@ var xlsx = require('xlsx');
 var fileUpload = require('express-fileupload');
 
 var request = require('request');
-var binanceHeaders = {
-    headers:{
-        'X-MBX-APIKEY':'7V0zsdyUVPy4fE3iJgOsRU8hAEbdoIQ5qfn5HF5jo1PwYoGP6fU8t1dulR4RnAQZ'
-    }
-};
+// var binanceHeaders = {
+//     headers:{
+//         'X-MBX-APIKEY':'7V0zsdyUVPy4fE3iJgOsRU8hAEbdoIQ5qfn5HF5jo1PwYoGP6fU8t1dulR4RnAQZ'
+//     }
+// };
 
 
 app.use(express.static(__dirname + '/public'));                 // set the static files location /public/img will be /img for users
@@ -26,6 +26,8 @@ app.use(bodyParser.json());                                     // parse applica
 app.use(bodyParser.json({ type: 'application/vnd.api+json' })); // parse application/vnd.api+json as json
 app.use(methodOverride());
 app.use(fileUpload());
+
+
 
 function getDateTime(date, mode){ //turns dates legible
     var month = date.getMonth()+1;
@@ -61,26 +63,49 @@ app.post('/api/doc', function(req, res){
     var worksheet = workbook.Sheets[workbook.SheetNames[0]];
     var jsonSheet = xlsx.utils.sheet_to_json(worksheet).reverse();
     
-    for (var i=0; i<jsonSheet.length; i++){
-        var tradeDate, tradeDate2, tradeMarket, tradeType, tradeTotal, tradeFeeCoin, tradeFee, tradeQuery; //declare variables
-        tradeDate = new Date(jsonSheet[i].Date); //start date
-        tradeDate2 = new Date(tradeDate.getTime()+(60000)); //end date
-        tradeMarket = jsonSheet[i].Market; //trading pair
+//     for (var i=0; i<jsonSheet.length; i++){
+//         var tradeDate, tradeDate2, tradeMarket, tradeType, tradeTotal, tradeFeeCoin, tradeFee, tradeQuery; //declare variables
+//         tradeDate = new Date(jsonSheet[i].Date); //start date
+//         tradeDate2 = new Date(tradeDate.getTime()+(60000)); //end date
+//         tradeMarket = jsonSheet[i].Market; //trading pair
 
+//         var gdaxHeaders = { //define header for gdax
+//             headers:{
+//                 'User-Agent':'cgcalc'
+//             }
+//         };
+
+//         request.get('https://api.gdax.com/products/ETH-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders, function(err, res, body){
+//             console.log("Closing price: ");
+//             console.log(body);
+//         });
+// }
+
+    jsonSheet.forEach(function(value){
+        var tradeDate, tradeDate2, tradeMarket, tradeType, tradeTotal, tradeFeeCoin, tradeFee; //declare variables
+        tradeDate = new Date(value.Date); //start date
+        tradeDate2 = new Date(tradeDate.getTime()+(60000)); //end date
+        tradeMarket = value.Market; //trading pair
+
+        
         var gdaxHeaders = { //define header for gdax
             headers:{
                 'User-Agent':'cgcalc'
             }
-        };        
-        setTimeout(waitTimeOut, 5000); //timeout
+        };
 
-        function waitTimeOut(){ //get request
+        setTimeout(function(){
             request.get('https://api.gdax.com/products/ETH-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders, function(err, res, body){
-                console.log("Closing price: ");
-                console.log(body);
+                console.log(tradeMarket);
+                console.log(getDateTime(new Date(tradeDate)));
+                console.log(res+ ": " +body);
             });
-        }
-    }
+        }, 2000);
+    });
+
+
+
+    
 
     res.json(jsonSheet);
 });
