@@ -5,13 +5,11 @@ var app      = express();                               // create our app w/ exp
 var morgan = require('morgan');             // log requests to the console (express4)
 var bodyParser = require('body-parser');    // pull information from HTML POST (express4)
 var methodOverride = require('method-override'); // simulate DELETE and PUT (express4)
-
-//xlsx
 var xlsx = require('xlsx');
-
 var fileUpload = require('express-fileupload');
-
+var fs = require('fs');
 var request = require('request');
+var usdcad = require('./public/lib/usdcad.json');
 
 
 app.use(express.static(__dirname + '/public'));                 // set the static files location /public/img will be /img for users
@@ -44,6 +42,9 @@ function getDateTime(date, mode){ //turns dates legible
     if (mode == "date"){ // YYYY/MM/DD
         return date.getFullYear() + "/" + month + "/" + day;
     }
+    else if (mode == "date-"){ // YYYY-MM-DD
+        return date.getFullYear() + "-" + month + "-" + day;
+    }
     else if (mode == "time"){ // HH:MM
         return hours + ":" + minutes;
     }
@@ -54,37 +55,68 @@ function getDateTime(date, mode){ //turns dates legible
 }
 
 app.post('/api/doc', function(req, res){
-    var workbook = xlsx.read(req.files.file.data);
-    var worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    var jsonSheet = xlsx.utils.sheet_to_json(worksheet).reverse();
+    var workbook = xlsx.read(req.files.file.data); //input file to workbook
+    var worksheet = workbook.Sheets[workbook.SheetNames[0]]; //workbook sheet1
+    var jsonSheet = xlsx.utils.sheet_to_json(worksheet).reverse(); //sheet1 to json. binance sheet is ordered newest -> oldest, so I'm using reverse function
 
     var i=0;
-    function doThis(){
-        var tradeDate, tradeDate2, tradeMarket, tradeType, tradeTotal, tradeFeeCoin, tradeFee, tradeQuery; //declare variables
+    function getCADValue(){
+        var tradeDate, tradeDate2, tradeMarket, tradeType, tradeTotal, tradeFeeCoin, tradeFee, tradeQuery, tradeDateFixer; //declare variables
         tradeDate = new Date(jsonSheet[i].Date); //start date
-        tradeDate2 = new Date(tradeDate.getTime()+(60000)); //end date
-        tradeMarket = jsonSheet[i].Market.slice(-3); //trading pair
-        console.log(jsonSheet[i].Market);
+        tradeDate2 = new Date(tradeDate.getTime()+(60000)); //end date @ start+1 min
+        tradeDateFixer = getDateTime(new Date(tradeDate), 'date-');
+        tradeMarket = jsonSheet[i].Market.slice(-3); //trading pair; slice to determine btc/eth
+        tradeType = jsonSheet[i].Type; //buy or sell
 
-        var gdaxHeaders = { //define header for gdax
-            headers:{
-                'User-Agent':'cgcalc'
-            }
-        };
+        //make user-agent header for gdax because they need one
+        var gdaxHeaders = {headers:{'User-Agent':'cgcalc'}};
 
+        //get ETH or BTC trading price from gdax at time of trade on binance
         request.get('https://api.gdax.com/products/'+tradeMarket+'-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders, function(err, res, body){
-            console.log(tradeMarket +" closing price: ");
-            console.log(JSON.parse(body)[0][4]);
-            i++;
-            if (i==jsonSheet.length){
-                return;
+            console.log(tradeMarket +" closing price: "+JSON.parse(body)[0][4]);
+
+            //try to call usdcad.json for existing date+rate, if not, search and add fixer.io's data
+            var usdcadSearch = usdcad.find(function(array){
+                return array.date == tradeDateFixer;
+            });
+
+            if(usdcadSearch){
+                console.log("CAD: "+usdcadSearch.rate);
+                
+                //recursive function. allows request to gdax to complete before requesting next trade
+                i++;
+                console.log("---");
+                if (i==jsonSheet.length){
+                    console.log("Done");
+                    return;
+                }
+                setTimeout(function(){getCADValue();}, 500); //gdax max 3 req/sec; set timer of 0.5ms
             }
             else{
-                setTimeout(function(){doThis();}, 1000);
-            }
+                request.get('https://api.fixer.io/'+tradeDateFixer+'?base=USD&symbols=CAD', function(err, res, body){
+                    var fixerRate = JSON.parse(body).rates.CAD;
+
+                    usdcad.push({"date": tradeDateFixer,"rate":fixerRate});
+
+                    //update the usdcad.json file
+                    fs.writeFile("./public/lib/usdcad.json", JSON.stringify(usdcad), (err) => {if (err) return err; console.log("usdcad.json updated");});
+
+                    console.log("FixerCAD: "+fixerRate);
+
+    
+                    //recursive function. allows request to gdax to complete before requesting next trade
+                    i++;
+                    console.log("---");
+                    if (i==jsonSheet.length){
+                        console.log("Done");
+                        return;
+                    }
+                    setTimeout(function(){getCADValue();}, 500); //gdax max 3 req/sec; set timer of 0.5ms
+                });
+            }            
         });
     };
-    doThis();
+    getCADValue();
     res.json(jsonSheet);
 });
 
