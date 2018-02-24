@@ -22,8 +22,6 @@ app.use(bodyParser.json({ type: 'application/vnd.api+json' })); // parse applica
 app.use(methodOverride());
 app.use(fileUpload());
 
-
-
 function getDateTime(date, mode){ //turns dates legible
     var month = date.getMonth()+1;
         if (month - 10 < 0){
@@ -53,10 +51,10 @@ function getDateTime(date, mode){ //turns dates legible
     else{ // YYYY/MM/DD HH:MM
         return date.getFullYear() + "/" + month + "/" + day + " " + hours + ":" + minutes;
     }
-    
+
 }
 
-app.post('/api/doc', function(req, res){
+app.post('/api/doc', function(req, res) {
     var workbook = xlsx.read(req.files.file.data); //input file to workbook
     var worksheet = workbook.Sheets[workbook.SheetNames[0]]; //workbook sheet1
     var jsonSheet = xlsx.utils.sheet_to_json(worksheet).reverse(); //sheet1 to json. binance sheet is ordered newest -> oldest, so I'm using reverse function
@@ -69,50 +67,63 @@ app.post('/api/doc', function(req, res){
         tradeMarket = value.Market.slice(-3); //trading pair; slice to determine btc/eth
         tradeType = value.Type; //buy or sell
 
-        async function getGDAXrate(){
-            //make user-agent header for gdax because they need one
-            var gdaxHeaders = {headers:{'User-Agent':'cgcalc'}};
+        var promise = new Promise(function(resolve, reject) {
+            function getGDAXrate(){
+                //make user-agent header for gdax because they need one
+                var gdaxHeaders = {headers:{'User-Agent':'cgcalc'}};
 
-            //get ETH or BTC trading price from gdax at time of trade on binance
-            await rp.get('https://api.gdax.com/products/'+tradeMarket+'-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders).then(function(body){
-                console.log("---");
-                console.log(tradeMarket +" closing price: "+JSON.parse(body)[0][4]);            
-            })
-            .catch(function(err){console.log(err+"gdax request");});            
-        };
+                //get ETH or BTC trading price from gdax at time of trade on binance
+                rp.get('https://api.gdax.com/products/'+tradeMarket+'-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders).then(async function(body) {
+                    console.log("---");
+                    console.log(tradeDate);
+                    console.log(tradeMarket +" closing price: "+JSON.parse(body)[0][4]);
 
-        async function getCADrate(){
-            var usdcadSearch = usdcad.find(function(array){
-                return array.date == tradeDateFixer;
-            });
+                    setTimeout(resolve, 500);
+                }).catch(function(err) {
+                    console.log(err+"gdax request");
+                });
+            };
 
-            if(usdcadSearch){
-                console.log("CAD: "+usdcadSearch.rate);
-            }
-            else{
-                await rp.get('https://api.fixer.io/'+tradeDateFixer+'?base=USD&symbols=CAD').then(function(body){
-                    var fixerRate = JSON.parse(body).rates.CAD;
+            function getCADrate() {
+                var usdcadSearch = usdcad.find(function(array){
+                    return array.date == tradeDateFixer;
+                });
 
-                    usdcad.push({"date": tradeDateFixer,"rate":fixerRate});
+                if (usdcadSearch) {
+                    console.log("CAD: "+usdcadSearch.rate);
+                } else {
+                    rp.get('https://api.fixer.io/'+tradeDateFixer+'?base=USD&symbols=CAD').then(function(body) {
+                        var fixerRate = JSON.parse(body).rates.CAD;
 
-                    //update the usdcad.json file
-                    fs.writeJson("./public/lib/usdcad.json", usdcad).then(function(body){
-                        console.log("usdcad.json updated");
-                    }).catch(function(err){console.log(err+"fs writefile")});
+                        usdcad.push({"date": tradeDateFixer,"rate":fixerRate});
 
-                    console.log("FixerCAD: "+fixerRate);                   
-                })
-                .catch(function(err){console.log(err+"fixer request");});
-            }
-        };
+                        //update the usdcad.json file
+                        fs.writeJson("./public/lib/usdcad.json", usdcad).then(function(body){
+                            console.log("usdcad.json updated");
+                        }).catch(function(err) {
+                            console.log(err+"fs writefile")
+                        });
 
-        getGDAXrate();
-        //getCADrate();
-        callback();
+                        console.log("FixerCAD: "+fixerRate);
+                    }).catch(function(err) {
+                        console.log(err+"fixer request");
+                    });
+                }
+            };
+
+            getGDAXrate();
+        });
+
+        promise.then(function() {
+            callback();
+        });
     });
+
     res.json(jsonSheet);
 });
 
 // listen (start app with node server.js) ======================================
 app.listen(8080);
 console.log("App listening on port 8080");
+
+
