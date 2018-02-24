@@ -53,7 +53,7 @@ function getDateTime(date, mode){ //turns dates legible
     else{ // YYYY/MM/DD HH:MM
         return date.getFullYear() + "/" + month + "/" + day + " " + hours + ":" + minutes;
     }
-    
+
 }
 
 app.post('/api/doc', function(req, res){
@@ -69,6 +69,8 @@ app.post('/api/doc', function(req, res){
         tradeMarket = value.Market.slice(-3); //trading pair; slice to determine btc/eth
         tradeType = value.Type; //buy or sell
 
+        console.log("Hello world");
+
         async function getGDAXrate(){
             //make user-agent header for gdax because they need one
             var gdaxHeaders = {headers:{'User-Agent':'cgcalc'}};
@@ -76,9 +78,9 @@ app.post('/api/doc', function(req, res){
             //get ETH or BTC trading price from gdax at time of trade on binance
             await rp.get('https://api.gdax.com/products/'+tradeMarket+'-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders).then(function(body){
                 console.log("---");
-                console.log(tradeMarket +" closing price: "+JSON.parse(body)[0][4]);            
+                console.log(tradeMarket +" closing price: "+JSON.parse(body)[0][4]);
             })
-            .catch(function(err){console.log(err+"gdax request");});            
+            .catch(function(err){console.log(err+"gdax request");});
         };
 
         async function getCADrate(){
@@ -100,7 +102,7 @@ app.post('/api/doc', function(req, res){
                         console.log("usdcad.json updated");
                     }).catch(function(err){console.log(err+"fs writefile")});
 
-                    console.log("FixerCAD: "+fixerRate);                   
+                    console.log("FixerCAD: "+fixerRate);
                 })
                 .catch(function(err){console.log(err+"fixer request");});
             }
