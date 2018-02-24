@@ -68,7 +68,6 @@ app.post('/api/doc', function(req, res) {
         tradeType = value.Type; //buy or sell
 
         var promise = new Promise(function(resolve, reject) {
-            console.log("Hello world");
 
             function getGDAXrate(){
                 //make user-agent header for gdax because they need one
