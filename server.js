@@ -79,37 +79,36 @@ app.post('/api/doc', function(req, res) {
                     console.log(tradeDate);
                     console.log(tradeMarket +" closing price: "+JSON.parse(body)[0][4]);
 
+                    var usdcadSearch = usdcad.find(function(array){
+                        return array.date == tradeDateFixer;
+                    });
+    
+                    if (usdcadSearch) {
+                        console.log("CAD: "+usdcadSearch.rate);
+                    } else {
+                        rp.get('https://api.fixer.io/'+tradeDateFixer+'?base=USD&symbols=CAD').then(function(body) {
+                            var fixerRate = JSON.parse(body).rates.CAD;
+    
+                            usdcad.push({"date": tradeDateFixer,"rate":fixerRate});
+    
+                            //update the usdcad.json file
+                            fs.writeJson("./public/lib/usdcad.json", usdcad).then(function(body){
+                                console.log("usdcad.json updated");
+                            }).catch(function(err) {
+                                console.log(err+"fs writefile")
+                            });
+    
+                            console.log("FixerCAD: "+fixerRate);
+                        }).catch(function(err) {
+                            console.log(err+"fixer request");
+                        });
+                    }
+
                     setTimeout(resolve, 500);
                 }).catch(function(err) {
                     console.log(err+"gdax request");
+                    reject();
                 });
-            };
-
-            function getCADrate() {
-                var usdcadSearch = usdcad.find(function(array){
-                    return array.date == tradeDateFixer;
-                });
-
-                if (usdcadSearch) {
-                    console.log("CAD: "+usdcadSearch.rate);
-                } else {
-                    rp.get('https://api.fixer.io/'+tradeDateFixer+'?base=USD&symbols=CAD').then(function(body) {
-                        var fixerRate = JSON.parse(body).rates.CAD;
-
-                        usdcad.push({"date": tradeDateFixer,"rate":fixerRate});
-
-                        //update the usdcad.json file
-                        fs.writeJson("./public/lib/usdcad.json", usdcad).then(function(body){
-                            console.log("usdcad.json updated");
-                        }).catch(function(err) {
-                            console.log(err+"fs writefile")
-                        });
-
-                        console.log("FixerCAD: "+fixerRate);
-                    }).catch(function(err) {
-                        console.log(err+"fixer request");
-                    });
-                }
             };
 
             getGDAXrate();
@@ -117,6 +116,8 @@ app.post('/api/doc', function(req, res) {
 
         promise.then(function() {
             callback();
+        }).catch(function() {
+            console.log("Promise rejected. Should restart.");
         });
     });
 
