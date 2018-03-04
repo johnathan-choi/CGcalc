@@ -184,6 +184,9 @@ app.post('/api/doc', function(req, res) {
     });
 });
 
+app.get('/api/time', function(req, res){
+    res.send(getDateTime(new Date()));
+});
 // listen (start app with node server.js) ======================================
 
 app.listen(PORT).setTimeout(1200000);

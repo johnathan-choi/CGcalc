@@ -30,6 +30,13 @@ function getDateTime(date, mode){ //turns dates legible
     
 }
 
+function keepAlive(){
+    $http.get('/api/time').then(function(response){
+        console.log(response.data);
+        return response.data;
+    });
+}
+
 var app = angular.module('cgcalc', ['ngFileUpload']);
 
 
@@ -41,6 +48,10 @@ app.controller('indexPage', ['$scope', 'Upload', '$http', '$window', function($s
     $scope.submitSS = function(doc){
         $scope.loading = false;
         $scope.clicked = true;
+        while (!$scope.loading) {
+            setTimeout (keepAlive, 10*1000);
+            $scope.currTime = keepAlive;
+        }
         $scope.doc.upload = Upload.upload({
             url: "/api/doc",
             file: $scope.doc
