@@ -57,6 +57,7 @@ app.post('/api/doc', function(req, res) {
     var workbook = xlsx.read(req.files.file.data); //input file to workbook
     var worksheet = workbook.Sheets[workbook.SheetNames[0]]; //workbook sheet1
     var jsonSheet = xlsx.utils.sheet_to_json(worksheet).reverse(); //sheet1 to json. binance sheet is ordered newest -> oldest, so I'm using reverse function
+    var capGain=0, capLoss=0;
     
     var promiseSheet = new Promise(function(resolve, reject) {
 
@@ -81,7 +82,7 @@ app.post('/api/doc', function(req, res) {
         var promiseRate;
         var promiseRow = new Promise(function(resolve, reject) {
 
-            if (tradeMarket=="BNB") {
+            if (tradeMarket=="BNB") { //i dont know
                 var binHeaders = {headers:{'X-MBX-APIKEY':'7V0zsdyUVPy4fE3iJgOsRU8hAEbdoIQ5qfn5HF5jo1PwYoGP6fU8t1dulR4RnAQZ'}};
                 rp.get('https://api.binance.com/api/v1/klines?symbol=BNBUSDT&interval=1m&limit=1&startTime='+tradeDate.getTime()+"&endTime="+tradeDate2.getTime(), binHeaders).then(function(body){
                     console.log(JSON.parse(body)[0][4]);
@@ -146,6 +147,7 @@ app.post('/api/doc', function(req, res) {
                 cadFinal = -1*tradeTotal*usdRate*cadRate;
                 console.log((key+1) + ") BUY: "+ cadFinal);
                 jsonSheet[key].CADValue = cadFinal;
+                capLoss = capLoss+cadFinal;
 
             } else if(tradeType=="SELL") {
                 if(tradeFeeCoin == tradeMarket){
@@ -157,9 +159,13 @@ app.post('/api/doc', function(req, res) {
                 cadFinal = tradeTotal*usdRate*cadRate;
                 console.log((key+1)+") SELL: " + cadFinal);
                 jsonSheet[key].CADValue = cadFinal;
+                capGain = capGain+cadFinal;
             }
 
             if (key == jsonSheet.length-1) { //when all rows are done
+                jsonSheet[0].CapLoss=capLoss;
+                jsonSheet[0].CapGain=capGain;
+                jsonSheet[0].CapNet = capLoss+capGain;
                 worksheet = xlsx.utils.json_to_sheet(jsonSheet);
                 workbook.Sheets[workbook.SheetNames[0]] = worksheet;
                 var fileName = 'result.xlsx';
