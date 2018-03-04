@@ -124,7 +124,7 @@ app.post('/api/doc', function(req, res) {
                         });
                     }
                 }).then(function() {
-                    setTimeout(resolve, 500);
+                    setTimeout(resolve, 700);
                 }).catch(function(err) {
                     console.log(err);
                     reject();
