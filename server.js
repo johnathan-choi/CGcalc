@@ -1,4 +1,5 @@
 // server.js
+const PORT = process.env.PORT || 8080;
 
 var express  = require('express');
 var app      = express();                   
@@ -185,7 +186,7 @@ app.post('/api/doc', function(req, res) {
 
 // listen (start app with node server.js) ======================================
 
-app.listen(8080).setTimeout(1200000);
-console.log("App listening on port 8080");
+app.listen(PORT).setTimeout(1200000);
+console.log("App listening on port "+ PORT);
 
 
