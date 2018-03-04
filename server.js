@@ -185,7 +185,7 @@ app.post('/api/doc', function(req, res) {
 });
 
 app.get('/api/time', function(req, res){
-    res.send(getDateTime(new Date()));
+    res.status(304).send(getDateTime(new Date()));
 });
 // listen (start app with node server.js) ======================================
 
