@@ -3,6 +3,7 @@
 ### Calculates Capital Gains/Losses in Canadian dollars ###
 
 [Access the Heroku-hosted site here](https://cgcalc.herokuapp.com/index.html)
+
 This program is *supposed to* take any exchange's exported trades spreadsheet and calculate the capital gain or loss for each trade.
 
 Right now it only works on Binance sheets.
@@ -14,9 +15,11 @@ Right now it only works on Binance sheets.
 * Heroku has a hard-coded timeout of 30 seconds.
     * This means that the site can run ~25 lines before crashing.
     * I might fix this later.
-    * Clone + run it on your own box (timeout set at 20 minutes: ~1.5k+ lines) on Node. 
+    * Clone + run it on your own box (timeout set at 20 minutes: ~1.5k+ lines) on Node.
+
     `node server.js` Or
     `nodemon -i './public/*'` If you have nodemon installed.
+    
     Go to localhost:8080.
 
 
