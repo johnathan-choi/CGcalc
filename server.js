@@ -77,58 +77,64 @@ app.post('/api/doc', function(req, res) {
         tradeFee = value.Fee;
         tradeFeeCoin = value['Fee Coin'];
 
+        var promiseBNB;
         var promiseRate;
         var promiseRow = new Promise(function(resolve, reject) {
 
-            if(tradeMarket=="BNB") {
-                //do something for x/bnb trades
-            } else {
-                //make user-agent header for gdax because they need one
-                var gdaxHeaders = {headers:{'User-Agent':'cgcalc'}};
-
-                //get ETH or BTC trading price from gdax at time of trade on binance
-                rp.get('https://api.gdax.com/products/'+tradeMarket+'-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders).then(function(body) {
-                    usdRate = JSON.parse(body)[0][4];
-
-                    promiseRate = new Promise(function(resolve, reject) {
-                        var usdcadSearch = usdcad.find(function(array){
-                            return array.date == tradeDateFixer;
-                        });
-
-                        if (usdcadSearch) {
-                            cadRate = usdcadSearch.rate;
-                            resolve();
-                        } else {
-                            rp.get('https://api.fixer.io/'+tradeDateFixer+'?base=USD&symbols=CAD').then(function(body) {
-                                cadRate = JSON.parse(body).rates.CAD;
-                                usdcad.push({"date": tradeDateFixer,"rate":cadRate});
-
-                                fs.writeJson("./public/lib/usdcad.json", usdcad).then(function(body){ //update usdcad.json
-                                }).catch(function(err) {
-                                    console.log(err+"fs writefile")
-                                });
-
-                                resolve();
-                            }).catch(function(err) {
-                                console.log(err+"fixer request");
-                                reject();
-                            });
-                        }
-                    }).then(function() {
-                        setTimeout(resolve, 600);
-                    }).catch(function(err) {
-                        console.log(err);
-                        reject();
-                    });
-
-                }).catch(function(err) {
-                    console.log(err+"gdax request");
-                    reject();
+            if (tradeMarket=="BNB") {
+                var binHeaders = {headers:{'X-MBX-APIKEY':'7V0zsdyUVPy4fE3iJgOsRU8hAEbdoIQ5qfn5HF5jo1PwYoGP6fU8t1dulR4RnAQZ'}};
+                rp.get('https://api.binance.com/api/v1/klines?symbol=BNBUSDT&interval=1m&limit=1&startTime='+tradeDate.getTime()+"&endTime="+tradeDate2.getTime(), binHeaders).then(function(body){
+                    console.log(JSON.parse(body)[0][4]);
+                }).catch(function(err){
+                    console.log(err + " binance api error");
                 });
             }
+
+            //make user-agent header for gdax because they need one
+            var gdaxHeaders = {headers:{'User-Agent':'cgcalc'}};
+
+            //get ETH or BTC trading price from gdax at time of trade on binance
+            rp.get('https://api.gdax.com/products/'+tradeMarket+'-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders).then(function(body) {
+                usdRate = JSON.parse(body)[0][4];
+
+                promiseRate = new Promise(function(resolve, reject) {
+                    var usdcadSearch = usdcad.find(function(array){
+                        return array.date == tradeDateFixer;
+                    });
+
+                    if (usdcadSearch) {
+                        cadRate = usdcadSearch.rate;
+                        resolve();
+                    } else {
+                        rp.get('https://api.fixer.io/'+tradeDateFixer+'?base=USD&symbols=CAD').then(function(body) {
+                            cadRate = JSON.parse(body).rates.CAD;
+                            usdcad.push({"date": tradeDateFixer,"rate":cadRate});
+
+                            fs.writeJson("./public/lib/usdcad.json", usdcad).then(function(body){ //update usdcad.json
+                            }).catch(function(err) {
+                                console.log(err+"fs writefile")
+                            });
+
+                            resolve();
+                        }).catch(function(err) {
+                            console.log(err+"fixer request");
+                            reject();
+                        });
+                    }
+                }).then(function() {
+                    setTimeout(resolve, 500);
+                }).catch(function(err) {
+                    console.log(err);
+                    reject();
+                });
+
+            }).catch(function(err) {
+                console.log(err+"gdax request");
+                reject();
+            });
         });
 
-        Promise.all([promiseRow, promiseRate]).then(function() {
+        Promise.all([promiseRow, promiseRate, promiseBNB]).then(function() {
 
             if(tradeType=="BUY") {
                 if(tradeFeeCoin == tradeAlt) {
