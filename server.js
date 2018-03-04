@@ -151,12 +151,19 @@ app.post('/api/doc', function(req, res) {
             }
 
             if (key == jsonSheet.length-1) { //when all rows are done
-                res.json(jsonSheet);
+                worksheet = xlsx.utils.json_to_sheet(jsonSheet);
+                workbook.Sheets[workbook.SheetNames[0]] = worksheet;
+                var fileName = './public/temp/result.xlsx';
+                xlsx.writeFile(workbook, fileName);
+                                
+                // res.status(200).send(fileName);
+
+                res.download(fileName);
             }
 
             callback();
-        }).catch(function() {
-            console.log("Promise rejected. Should restart.");
+        }).catch(function(err) {
+            console.log(err + "\nPromise rejected. Should restart.");
         }); //promiseRow
     }); //async forEachOfSeries
 

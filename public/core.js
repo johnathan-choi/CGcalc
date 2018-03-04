@@ -41,7 +41,7 @@ app.controller('indexPage', ['$scope', 'Upload', '$http', function($scope, Uploa
             url: "/api/doc",
             file: $scope.doc
         }).then(function(response){
-            $scope.result=response.data;
+            // $scope.result=response.data;
         });
     };
 }]);
