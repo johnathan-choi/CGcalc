@@ -30,11 +30,12 @@
             <p class="pagetitle">Import your Binance spreadsheet</p>
             <form class="container-fluid">
                 <input type="file" ngf-select ng-model="doc" name="doc" accept=".xlsx">
-                <input type="submit" class="btn btn-primary" ng-click="submitSS(doc)">
+                <input type="submit" class="btn btn-primary" ng-click="submitSS(doc)" ng-hide="clicked">
             </form>
 
             <p class="pagetitle">Result</p>
-            <div>{{result}}</div>
+            <div ng-hide="loading">Currently processing sheet.</div>
+            <a href="/temp/{{result}}" download="output.xlsx" ng-hide="dlButton">Download</a>
         </div>
         
     </body>

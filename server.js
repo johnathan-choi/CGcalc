@@ -153,12 +153,16 @@ app.post('/api/doc', function(req, res) {
             if (key == jsonSheet.length-1) { //when all rows are done
                 worksheet = xlsx.utils.json_to_sheet(jsonSheet);
                 workbook.Sheets[workbook.SheetNames[0]] = worksheet;
-                var fileName = './public/temp/result.xlsx';
-                xlsx.writeFile(workbook, fileName);
+                var fileName = 'result.xlsx';
+                xlsx.writeFile(workbook, "./public/temp/"+fileName);
                                 
-                // res.status(200).send(fileName);
+                res.status(200).send(fileName);
 
-                res.download(fileName);
+                // res.download(fileName, function(err){
+                //     if (err){
+                //         console.log(err + " download error.");
+                //     };
+                // });
             }
 
             callback();
