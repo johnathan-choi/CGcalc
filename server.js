@@ -13,7 +13,6 @@ var rp = require('request-promise');
 var usdcad = require('./public/lib/usdcad.json');
 var async = require('async');
 
-
 app.use(express.static(__dirname + '/public'));                 
 app.use(morgan('dev'));                                         
 app.use(bodyParser.urlencoded({'extended':'true'}));            
@@ -69,7 +68,7 @@ app.post('/api/doc', function(req, res) {
         tradeDate = new Date(value.Date); //start date
         tradeDate2 = new Date(tradeDate.getTime()+(60000)); //end date @ start+1 min
         tradeDateFixer = getDateTime(new Date(tradeDate), 'date-'); //start date in "-"" notation, used for fixer API
-        tradeMarket = value.Market.slice(-3); //trading pair; slice to determine btc/eth
+        tradeMarket = value.Market.slice(-3); //trading pair; slice to determine btc/eth/bnb
         tradeAlt = value.Market.substring(0, (value.Market.length)-3); //trading pair; the alt or the initial
         tradeType = value.Type; //buy or sell
         tradePrice = value.Price;
@@ -81,48 +80,52 @@ app.post('/api/doc', function(req, res) {
         var promiseRate;
         var promiseRow = new Promise(function(resolve, reject) {
 
-            //make user-agent header for gdax because they need one
-            var gdaxHeaders = {headers:{'User-Agent':'cgcalc'}};
+            if(tradeMarket=="BNB") {
+                //do something for x/bnb trades
+            } else {
+                //make user-agent header for gdax because they need one
+                var gdaxHeaders = {headers:{'User-Agent':'cgcalc'}};
 
-            //get ETH or BTC trading price from gdax at time of trade on binance
-            rp.get('https://api.gdax.com/products/'+tradeMarket+'-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders).then(function(body) {
-                usdRate = JSON.parse(body)[0][4];
+                //get ETH or BTC trading price from gdax at time of trade on binance
+                rp.get('https://api.gdax.com/products/'+tradeMarket+'-USD/candles?granularity=60&start='+tradeDate+'&end='+tradeDate2, gdaxHeaders).then(function(body) {
+                    usdRate = JSON.parse(body)[0][4];
 
-                promiseRate = new Promise(function(resolve, reject) {
-                    var usdcadSearch = usdcad.find(function(array){
-                        return array.date == tradeDateFixer;
+                    promiseRate = new Promise(function(resolve, reject) {
+                        var usdcadSearch = usdcad.find(function(array){
+                            return array.date == tradeDateFixer;
+                        });
+
+                        if (usdcadSearch) {
+                            cadRate = usdcadSearch.rate;
+                            resolve();
+                        } else {
+                            rp.get('https://api.fixer.io/'+tradeDateFixer+'?base=USD&symbols=CAD').then(function(body) {
+                                cadRate = JSON.parse(body).rates.CAD;
+                                usdcad.push({"date": tradeDateFixer,"rate":cadRate});
+
+                                fs.writeJson("./public/lib/usdcad.json", usdcad).then(function(body){ //update usdcad.json
+                                }).catch(function(err) {
+                                    console.log(err+"fs writefile")
+                                });
+
+                                resolve();
+                            }).catch(function(err) {
+                                console.log(err+"fixer request");
+                                reject();
+                            });
+                        }
+                    }).then(function() {
+                        setTimeout(resolve, 600);
+                    }).catch(function(err) {
+                        console.log(err);
+                        reject();
                     });
 
-                    if (usdcadSearch) {
-                        cadRate = usdcadSearch.rate;
-                        resolve();
-                    } else {
-                        rp.get('https://api.fixer.io/'+tradeDateFixer+'?base=USD&symbols=CAD').then(function(body) {
-                            cadRate = JSON.parse(body).rates.CAD;
-                            usdcad.push({"date": tradeDateFixer,"rate":cadRate});
-
-                            fs.writeJson("./public/lib/usdcad.json", usdcad).then(function(body){ //update usdcad.json
-                            }).catch(function(err) {
-                                console.log(err+"fs writefile")
-                            });
-
-                            resolve();
-                        }).catch(function(err) {
-                            console.log(err+"fixer request");
-                            reject();
-                        });
-                    }
-                }).then(function() {
-                    setTimeout(resolve, 500);
                 }).catch(function(err) {
-                    console.log(err);
+                    console.log(err+"gdax request");
                     reject();
                 });
-
-            }).catch(function(err) {
-                console.log(err+"gdax request");
-                reject();
-            });
+            }
         });
 
         Promise.all([promiseRow, promiseRate]).then(function() {
@@ -135,7 +138,7 @@ app.post('/api/doc', function(req, res) {
                     tradeTotal = tradeTotal *0.995; //or something
                 }
                 cadFinal = -1*tradeTotal*usdRate*cadRate;
-                console.log("BUY: "+ cadFinal);
+                console.log((key+1) + ") BUY: "+ cadFinal);
                 jsonSheet[key].CADValue = cadFinal;
 
             } else if(tradeType=="SELL") {
@@ -146,7 +149,7 @@ app.post('/api/doc', function(req, res) {
                     tradeTotal = tradeTotal *0.995; //or something
                 }
                 cadFinal = tradeTotal*usdRate*cadRate;
-                console.log("SELL: " + cadFinal);
+                console.log((key+1)+") SELL: " + cadFinal);
                 jsonSheet[key].CADValue = cadFinal;
             }
 
@@ -157,12 +160,6 @@ app.post('/api/doc', function(req, res) {
                 xlsx.writeFile(workbook, "./public/temp/"+fileName);
                                 
                 res.status(200).send(fileName);
-
-                // res.download(fileName, function(err){
-                //     if (err){
-                //         console.log(err + " download error.");
-                //     };
-                // });
             }
 
             callback();
@@ -175,7 +172,8 @@ app.post('/api/doc', function(req, res) {
 });
 
 // listen (start app with node server.js) ======================================
-app.listen(8080);
+
+app.listen(8080).setTimeout(1200000);
 console.log("App listening on port 8080");
 
 
